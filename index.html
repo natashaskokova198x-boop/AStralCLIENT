@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASTRAL — NEXT-GENERATION MINECRAFT CLIENT</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+        
+        :root {
+            --bg: #0a0a0a;
+            --text: #ffffff;
+            --accent: #ffffff;
+            --glass-bg: rgba(255,255,255,0.025);
+            --glass-border: rgba(255,255,255,0.18);
+        }
+        
+        body.light {
+            --bg: #f8f8f8;
+            --text: #0a0a0a;
+            --accent: #0a0a0a;
+            --glass-bg: rgba(0,0,0,0.025);
+            --glass-border: rgba(0,0,0,0.22);
+        }
+        
+        * { margin:0; padding:0; box-sizing:border-box; }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+            letter-spacing: 0.03em;
+            transition: background 0.6s ease, color 0.6s ease;
+        }
+        
+        a { color: var(--text); text-decoration: none; }
+        
+        .hero {
+            position: relative;
+            height: 100vh;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        #three-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            max-width: 960px;
+            padding: 0 30px;
+        }
+        
+        .title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(5.2rem, 14vw, 11rem);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.07em;
+            line-height: 0.8;
+            text-shadow: 0 0 80px var(--accent);
+            position: relative;
+            animation: glitch-title 3.5s infinite linear;
+        }
+        
+        .title::before,
+        .title::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+        
+        .title::before { animation: glitch-anim 1.8s infinite linear alternate-reverse; clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%); opacity: 0.85; }
+        .title::after { animation: glitch-anim2 2.2s infinite linear alternate-reverse; clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%); opacity: 0.85; }
+        
+        @keyframes glitch-title { 0%,100% { transform: translate(0); } 20% { transform: translate(-4px,4px); } 40% { transform: translate(4px,-4px); } }
+        @keyframes glitch-anim { 0% { transform: translate(0); } 20% { transform: translate(-5px,5px); } }
+        @keyframes glitch-anim2 { 0% { transform: translate(0); } 25% { transform: translate(5px,-5px); } }
+        
+        .subtitle {
+            font-size: clamp(1.35rem, 2.8vw, 2.2rem);
+            font-weight: 700;
+            letter-spacing: 0.55em;
+            opacity: 0.85;
+            margin: 30px 0 70px;
+            animation: fadeUp 1.6s 0.5s both;
+        }
+        
+        .cta {
+            font-family: 'Orbitron', sans-serif;
+            display: inline-block;
+            font-size: 1.35rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.22em;
+            padding: 22px 68px;
+            border: 3px solid var(--accent);
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.23,1,0.32,1);
+            animation: pulse-cta 2s infinite;
+        }
+        
+        .cta:hover {
+            background: var(--accent);
+            color: var(--bg);
+            box-shadow: 0 0 120px var(--accent);
+            transform: scale(1.2) translateY(-8px) rotate(2deg);
+        }
+        
+        @keyframes pulse-cta {
+            0%,100% { box-shadow: 0 0 40px var(--accent); }
+            50% { box-shadow: 0 0 100px var(--accent); }
+        }
+        
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            padding: 28px 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            mix-blend-mode: difference;
+            transition: all 0.6s ease;
+        }
+        
+        body.light nav { mix-blend-mode: normal; }
+        
+        .logo { 
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.1rem; 
+            font-weight: 900; 
+            letter-spacing: 0.4em; 
+            text-transform: uppercase; 
+        }
+        
+        .nav-links a {
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            margin-left: 48px;
+            font-size: 1.05rem;
+            transition: all 0.3s;
+        }
+        
+        .nav-links a:hover {
+            text-shadow: 0 0 30px var(--accent);
+            transform: scale(1.12);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .lang-btn, .theme-btn {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            padding: 9px 20px;
+            border: 2px solid var(--accent);
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.23,1,0.32,1);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        .lang-btn:hover, .theme-btn:hover,
+        .lang-btn.active {
+            background: var(--accent);
+            color: var(--bg);
+            box-shadow: 0 0 40px var(--accent);
+        }
+        
+        section {
+            position: relative;
+            z-index: 10;
+            padding: 160px 60px 110px;
+            background: var(--bg);
+            transition: background 0.6s ease;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 45px;
+            max-width: 1480px;
+            margin: 0 auto;
+        }
+        
+        .glass-panel {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(40px);
+            padding: 55px 42px;
+            transition: all 0.7s cubic-bezier(0.23,1,0.32,1);
+        }
+        
+        .glass-panel:hover {
+            transform: translateY(-45px) rotate(3deg) scale(1.04);
+            border-color: var(--accent);
+            box-shadow: 0 80px 160px rgba(0,0,0,0.7);
+        }
+        
+        body.light .glass-panel:hover {
+            box-shadow: 0 80px 160px rgba(255,255,255,0.3);
+        }
+        
+        .glass-panel h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.35rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.03em;
+            line-height: 1.05;
+            margin-bottom: 26px;
+        }
+        
+        .glass-panel p {
+            font-size: 1.15rem;
+            opacity: 0.85;
+            line-height: 1.65;
+        }
+        
+        .download-zone {
+            text-align: center;
+            padding: 180px 30px 140px;
+            background: var(--bg);
+        }
+        
+        .download-zone h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(3.8rem, 8.5vw, 7.2rem);
+            font-weight: 900;
+            text-transform: uppercase;
+            line-height: 0.88;
+            margin-bottom: 50px;
+            animation: glitch-title 3s infinite;
+        }
+        
+        .big-download {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.9rem;
+            padding: 28px 92px;
+            border: 4px solid var(--accent);
+            background: transparent;
+            color: var(--text);
+            text-transform: uppercase;
+            letter-spacing: 0.28em;
+            font-weight: 900;
+            transition: all 0.5s cubic-bezier(0.23,1,0.32,1);
+        }
+        
+        .big-download:hover {
+            background: var(--accent);
+            color: var(--bg);
+            box-shadow: 0 0 160px var(--accent);
+            transform: scale(1.18) rotate(-2deg);
+        }
+        
+        .version {
+            margin-top: 55px;
+            font-size: 1.1rem;
+            opacity: 0.6;
+            letter-spacing: 0.35em;
+        }
+        
+        footer {
+            padding: 90px 50px 50px;
+            text-align: center;
+            font-size: 0.95rem;
+            opacity: 0.55;
+            border-top: 1px solid var(--glass-border);
+            letter-spacing: 0.2em;
+            transition: all 0.6s ease;
+        }
+        
+        .scanline {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(255,255,255,0.025) 50%);
+            background-size: 100% 7px;
+            pointer-events: none;
+            z-index: 999;
+            animation: scan 5s linear infinite;
+            opacity: 0.3;
+        }
+        
+        body.light .scanline {
+            background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.025) 50%);
+        }
+        
+        @keyframes scan { 0% { background-position: 0 0; } 100% { background-position: 0 700px; } }
+        
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(80px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="logo">ASTRAL</div>
+        <div class="nav-links">
+            <a href="#features" id="nav-features">ОСОБЕННОСТИ</a>
+            <a href="#download" id="nav-download">СКАЧАТЬ</a>
+            <a href="https://discord.com/download" target="_blank" id="nav-discord">DISCORD</a>
+            <a href="https://t.me/AstralClient" target="_blank" id="nav-telegram">TELEGRAM</a>
+        </div>
+        <div class="controls">
+            <div onclick="changeLanguage('ru')" class="lang-btn active" id="lang-ru">RU</div>
+            <div onclick="changeLanguage('en')" class="lang-btn" id="lang-en">EN</div>
+            <div onclick="changeLanguage('uk')" class="lang-btn" id="lang-uk">UA</div>
+            <div onclick="changeLanguage('zh')" class="lang-btn" id="lang-zh">ZH</div>
+            <div onclick="toggleTheme()" class="theme-btn" id="theme-btn">DARK</div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <canvas id="three-canvas"></canvas>
+        <div class="hero-content">
+            <h1 class="title" data-text="ASTRAL">ASTRAL</h1>
+            <p class="subtitle" id="hero-subtitle">КЛИЕНТ MINECRAFT СЛЕДУЮЩЕГО ПОКОЛЕНИЯ</p>
+            <a href="#download" class="cta" id="hero-cta">ПОЛУЧИТЬ СЕЙЧАС</a>
+        </div>
+    </section>
+
+    <div class="scanline"></div>
+
+    <section id="features">
+        <div class="features">
+            <div class="glass-panel">
+                <h3 id="f1-h3">KILLAURA<br>ОБХОД</h3>
+                <p id="f1-p">ТОП СНАП. 0 флагов. топ настройки.</p>
+            </div>
+            <div class="glass-panel">
+                <h3 id="f2-h3">ASTRAL<br>PVE</h3>
+                <p id="f2-p">Топ PvE функции лучше чем в D1lta и Br1tva клиентах!</p>
+            </div>
+            <div class="glass-panel">
+                <h3 id="f3-h3">УНИЧТОЖЬ<br>СЕРВЕР</h3>
+                <p id="f3-p">Топ обходы для МНОГИХ серверов!</p>
+            </div>
+            <div class="glass-panel">
+                <h3 id="f4-h3">ЛУЧШАЯ ВЕРСИЯ<br>MINECRAFT!</h3>
+                <p id="f4-p">Версия 1.21.11 (Fabric)</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="download" class="download-zone">
+        <h2 id="download-h2">СКАЧАТЬ<br>ASTRAL FREE</h2>
+        <a href="Download/AstralFree.zip" download="AstralFree.zip" class="big-download" id="download-btn">СКАЧАТЬ ZIP • 87.4 MB</a>
+        <div class="version" id="version-text">v0.0.1 • АЛЬФА • ЖДЁМ ТЕБЯ</div>
+        <p id="fact-p" style="margin-top:70px;opacity:0.5;font-size:1.05rem;letter-spacing:0.18em;">Интересный факт: разработчики познакомились случайно <strong>pisi</strong></p>
+    </section>
+
+    <footer id="footer-text">
+        © 2026 ASTRAL • ТОП ЧИТ • BYASTRALS • БЕЗ ПРАВИЛ • БЕЗ ЛИМИТОВ
+    </footer>
+
+    <script>
+        const translations = {
+            ru: {
+                heroSubtitle: "КЛИЕНТ MINECRAFT СЛЕДУЮЩЕГО ПОКОЛЕНИЯ",
+                heroCta: "ПОЛУЧИТЬ СЕЙЧАС",
+                navFeatures: "ОСОБЕННОСТИ",
+                navDownload: "СКАЧАТЬ",
+                navDiscord: "DISCORD",
+                navTelegram: "TELEGRAM",
+                f1h3: "KILLAURA<br>ОБХОД",
+                f1p: "ТОП СНАП. 0 флагов. топ настройки.",
+                f2h3: "ASTRAL<br>PVE",
+                f2p: "Топ PvE функции лучше чем в D1lta и Br1tva клиентах!",
+                f3h3: "УНИЧТОЖЬ<br>СЕРВЕР",
+                f3p: "Топ обходы для МНОГИХ серверов!",
+                f4h3: "ЛУЧШАЯ ВЕРСИЯ<br>MINECRAFT!",
+                f4p: "Версия 1.21.11 (Fabric)",
+                downloadH2: "СКАЧАТЬ<br>ASTRAL FREE",
+                downloadBtn: "СКАЧАТЬ ZIP • 87.4 MB",
+                version: "v0.0.1 • АЛЬФА • ЖДЁМ ТЕБЯ",
+                fact: "Интересный факт: разработчики познакомились случайно <strong>pisi</strong>",
+                footer: "© 2026 ASTRAL • ТОП ЧИТ • BYASTRALS • БЕЗ ПРАВИЛ • БЕЗ ЛИМИТОВ"
+            },
+            en: {
+                heroSubtitle: "NEXT-GENERATION MINECRAFT CLIENT",
+                heroCta: "GET IT NOW",
+                navFeatures: "FEATURES",
+                navDownload: "DOWNLOAD",
+                navDiscord: "DISCORD",
+                navTelegram: "TELEGRAM",
+                f1h3: "KILLAURA<br>BYPASS",
+                f1p: "TOP SNAP. 0 flags. top config.",
+                f2h3: "ASTRAL<br>PVE",
+                f2p: "Top PvE features better than D1lta and Br1tva clients!",
+                f3h3: "DESTROY<br>THE SERVER",
+                f3p: "Top bypasses for MANY servers!",
+                f4h3: "BEST VERSION<br>MINECRAFT!",
+                f4p: "Version 1.21.11 (Fabric)",
+                downloadH2: "DOWNLOAD<br>ASTRAL FREE",
+                downloadBtn: "DOWNLOAD ZIP • 87.4 MB",
+                version: "v0.0.1 • ALPHA • WAITING FOR YOU",
+                fact: "Fun fact: the developers met by accident <strong>pisi</strong>",
+                footer: "© 2026 ASTRAL • TOP CHEAT • BYASTRALS • NO RULES • NO LIMITS"
+            },
+            uk: {
+                heroSubtitle: "КЛІЄНТ MINECRAFT НАСТУПНОГО ПОКОЛІННЯ",
+                heroCta: "ОТРИМАТИ ЗАРАЗ",
+                navFeatures: "ОСОБЛИВОСТІ",
+                navDownload: "ЗАВАНТАЖИТИ",
+                navDiscord: "DISCORD",
+                navTelegram: "TELEGRAM",
+                f1h3: "KILLAURA<br>ОБХІД",
+                f1p: "ТОП СНАП. 0 флагів. топ налаштування.",
+                f2h3: "ASTRAL<br>PVE",
+                f2p: "Топ PvE функції краще ніж у D1lta та Br1tva клієнтах!",
+                f3h3: "ЗНИЩ СЕРВЕР",
+                f3p: "Топ обходи для БАГАТЬОХ серверів!",
+                f4h3: "НАЙКРАЩА ВЕРСІЯ<br>MINECRAFT!",
+                f4p: "Версія 1.21.11 (Fabric)",
+                downloadH2: "ЗАВАНТАЖИТИ<br>ASTRAL FREE",
+                downloadBtn: "ЗАВАНТАЖИТИ ZIP • 87.4 MB",
+                version: "v0.0.1 • АЛЬФА • ЧЕКАЄМО ТЕБЕ",
+                fact: "Цікавий факт: розробники познайомились випадково <strong>pisi</strong>",
+                footer: "© 2026 ASTRAL • ТОП ЧІТ • BYASTRALS • БЕЗ ПРАВИЛ • БЕЗ ЛІМІТІВ"
+            },
+            zh: {
+                heroSubtitle: "次世代 Minecraft 客户端",
+                heroCta: "立即获取",
+                navFeatures: "功能",
+                navDownload: "下载",
+                navDiscord: "DISCORD",
+                navTelegram: "TELEGRAM",
+                f1h3: "杀戮光环<br>绕过",
+                f1p: "顶级 Snap. 0 标志. 顶级配置.",
+                f2h3: "ASTRAL<br>PVE",
+                f2p: "顶级 PvE 功能，优于 D1lta 和 Br1tva 客户端！",
+                f3h3: "摧毁<br>服务器",
+                f3p: "针对许多服务器的顶级绕过！",
+                f4h3: "最佳版本<br>MINECRAFT！",
+                f4p: "版本 1.21.11 (Fabric)",
+                downloadH2: "下载<br>ASTRAL FREE",
+                downloadBtn: "下载 ZIP • 87.4 MB",
+                version: "v0.0.1 • 内测 • 等你来",
+                fact: "有趣的事实：开发人员偶然相识 <strong>pisi</strong>",
+                footer: "© 2026 ASTRAL • 顶级作弊 • BYASTRALS • 无规则 • 无限制"
+            }
+        };
+
+        let currentLang = 'ru';
+        function changeLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            document.getElementById('hero-subtitle').textContent = t.heroSubtitle;
+            document.getElementById('hero-cta').textContent = t.heroCta;
+            document.getElementById('nav-features').textContent = t.navFeatures;
+            document.getElementById('nav-download').textContent = t.navDownload;
+            document.getElementById('nav-discord').textContent = t.navDiscord;
+            document.getElementById('nav-telegram').textContent = t.navTelegram;
+            document.getElementById('f1-h3').innerHTML = t.f1h3;
+            document.getElementById('f1-p').textContent = t.f1p;
+            document.getElementById('f2-h3').innerHTML = t.f2h3;
+            document.getElementById('f2-p').textContent = t.f2p;
+            document.getElementById('f3-h3').innerHTML = t.f3h3;
+            document.getElementById('f3-p').textContent = t.f3p;
+            document.getElementById('f4-h3').innerHTML = t.f4h3;
+            document.getElementById('f4-p').textContent = t.f4p;
+            document.getElementById('download-h2').innerHTML = t.downloadH2;
+            document.getElementById('download-btn').textContent = t.downloadBtn;
+            document.getElementById('version-text').textContent = t.version;
+            document.getElementById('fact-p').innerHTML = t.fact;
+            document.getElementById('footer-text').innerHTML = t.footer;
+
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('lang-' + lang).classList.add('active');
+        }
+
+        let isDark = true;
+        function toggleTheme() {
+            isDark = !isDark;
+            document.body.classList.toggle('light', !isDark);
+            document.getElementById('theme-btn').textContent = isDark ? 'DARK' : 'LIGHT';
+
+            // Меняем цвет частиц в 3D
+            if (centralSphere) {
+                const col = isDark ? 0xffffff : 0x000000;
+                centralSphere.material.color.setHex(col);
+                innerSphere.material.color.setHex(col);
+                wireSphere.material.color.setHex(col);
+                extraParticles.material.color.setHex(col);
+                rings.forEach(r => r.material.color.setHex(col));
+            }
+        }
+
+        // ==================== 3D ====================
+        let scene, camera, renderer, centralSphere, innerSphere, wireSphere, rings = [], extraParticles;
+        let mouseX = 0, mouseY = 0, targetX = 0, targetY = 0;
+
+        function initThree() {
+            const canvas = document.getElementById('three-canvas');
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.8));
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 350);
+            camera.position.set(0, 3.5, 15.5);
+
+            const sphereCount = 9200;
+            const pos = new Float32Array(sphereCount * 3);
+            const sizes = new Float32Array(sphereCount);
+            const sphereR = 4.1;
+            for (let i = 0; i < sphereCount * 3; i += 3) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const r = sphereR * (0.86 + Math.random() * 0.24);
+                pos[i] = r * Math.sin(phi) * Math.cos(theta);
+                pos[i+1] = r * Math.sin(phi) * Math.sin(theta);
+                pos[i+2] = r * Math.cos(phi);
+                sizes[i/3] = Math.random() * 0.06 + 0.028;
+            }
+            const sphereGeo = new THREE.BufferGeometry();
+            sphereGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            sphereGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+            centralSphere = new THREE.Points(sphereGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.042, transparent: true, opacity: 0.94, blending: THREE.AdditiveBlending, depthTest: false }));
+            scene.add(centralSphere);
+
+            innerSphere = new THREE.Points(sphereGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.027, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending }));
+            innerSphere.scale.set(0.66, 0.66, 0.66);
+            scene.add(innerSphere);
+
+            wireSphere = new THREE.Mesh(new THREE.IcosahedronGeometry(sphereR * 1.22, 4), new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.11, blending: THREE.AdditiveBlending }));
+            scene.add(wireSphere);
+
+            for (let i = 0; i < 5; i++) {
+                const torus = new THREE.TorusGeometry(sphereR * (1.28 + i * 0.23), 0.019, 6, 96);
+                const ring = new THREE.Mesh(torus, new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.06 + i*0.03, blending: THREE.AdditiveBlending }));
+                ring.rotation.x = i * 0.68;
+                scene.add(ring);
+                rings.push(ring);
+            }
+
+            const pCount = 11800;
+            const pPos = new Float32Array(pCount * 3);
+            for (let i = 0; i < pCount * 3; i += 3) {
+                const r = 52 + Math.random() * 68;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                pPos[i] = r * Math.sin(phi) * Math.cos(theta);
+                pPos[i+1] = r * Math.sin(phi) * Math.sin(theta) * 0.7;
+                pPos[i+2] = r * Math.cos(phi);
+            }
+            extraParticles = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(pPos, 3)), new THREE.PointsMaterial({ color: 0xffffff, size: 0.095, transparent: true, opacity: 0.62, blending: THREE.AdditiveBlending }));
+            scene.add(extraParticles);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.48));
+            const pl = new THREE.PointLight(0xffffff, 3.2, 250);
+            pl.position.set(22, 28, 35);
+            scene.add(pl);
+
+            window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+            document.addEventListener('mousemove', e => { targetX = (e.clientX / window.innerWidth) * 2 - 1; targetY = -(e.clientY / window.innerHeight) * 2 + 1; });
+            canvas.addEventListener('click', () => { centralSphere.scale.set(2.1,2.1,2.1); setTimeout(() => centralSphere.scale.set(1,1,1), 220); });
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            mouseX = mouseX * 0.86 + targetX * 0.14;
+            mouseY = mouseY * 0.86 + targetY * 0.14;
+            camera.position.x = mouseX * 5.8;
+            camera.position.y = mouseY * 4.2 + 2.8;
+            camera.lookAt(0, 1.8, 0);
+
+            const t = Date.now() * 0.0011;
+            centralSphere.rotation.y = t * 0.29;
+            centralSphere.rotation.x = t * 0.12;
+            centralSphere.scale.setScalar(1 + Math.sin(t * 3.2) * 0.045);
+
+            innerSphere.rotation.y = t * -0.45;
+            innerSphere.scale.setScalar(0.66 + Math.sin(t * 4) * 0.09);
+
+            wireSphere.rotation.y = t * 0.1;
+            wireSphere.rotation.x = t * -0.06;
+
+            rings.forEach((r, i) => {
+                r.rotation.z = t * (0.58 + i * 0.22);
+                r.rotation.y = t * 0.16;
+            });
+
+            extraParticles.rotation.y = t * 0.032;
+            renderer.render(scene, camera);
+        }
+
+        window.onload = () => {
+            initThree();
+            changeLanguage('ru');
+            setTimeout(() => {
+                document.querySelectorAll('.glass-panel').forEach((p, i) => {
+                    p.style.opacity = '0';
+                    p.style.transform = 'translateY(90px)';
+                    setTimeout(() => {
+                        p.style.transition = 'all 1.4s cubic-bezier(0.23,1,0.32,1)';
+                        p.style.transitionDelay = (i * 70) + 'ms';
+                        p.style.opacity = '1';
+                        p.style.transform = 'translateY(0)';
+                    }, 280);
+                });
+            }, 420);
+        };
+    </script>
+</body>
+</html>
